@@ -143,6 +143,6 @@ app.post("/login", async (req, res) => {
   }
 });
 
-app.listen(PORT, "192.168.1.11", () => {
+app.listen(PORT, () => {
   console.log(`Server is running on http://192.168.1.11:${PORT}`);
 });
