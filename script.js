@@ -1,4 +1,3 @@
-import mysql from "mysql2";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
@@ -6,8 +5,10 @@ import dotenv from "dotenv";
 import { nanoid } from "nanoid";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import pg from "pg";
-const { Client } = pg;
+
+import pkg from "pg";
+
+const { Client } = pkg;
 
 dotenv.config();
 
@@ -16,10 +17,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
-const databaseUrl = process.env.DB_URL;
-
 const accessEnv = process.env;
-const PORT = accessEnv.PORT;
+const PORT = accessEnv.PORT || 3000;
 const JWT_SECRET = accessEnv.SECRECT_TOKEN;
 
 const client = new Client({
@@ -29,12 +28,13 @@ const client = new Client({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
 });
+
 client.connect((err) => {
   if (err) {
     console.log("DB Connection Error: ", err);
     process.exit(1);
   } else {
-    console.log("MySQL User Connected");
+    console.log("PostgreSQL Connected");
   }
 });
 
@@ -44,7 +44,7 @@ app.post("/adduser", async (req, res) => {
   const uId = nanoid(10);
 
   if (!name || !email || !password) {
-    return res.status(400).json({ error: "All fields are requied" });
+    return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
@@ -59,7 +59,7 @@ app.post("/adduser", async (req, res) => {
 
     res.status(200).json({
       message: "User added successfully",
-      user: result.rows[0],
+      user: result.rows[0], // Return the created user
       token,
     });
   } catch (error) {
@@ -69,7 +69,6 @@ app.post("/adduser", async (req, res) => {
 });
 
 app.get("/context", async (req, res) => {
-  // const {id} = req.body;
   try {
     const result = await client.query(
       "SELECT * FROM context WHERE id = (SELECT max(id) FROM context);"
@@ -87,7 +86,6 @@ app.get("/context", async (req, res) => {
 });
 
 // Login User
-
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
