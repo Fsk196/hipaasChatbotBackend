@@ -29,12 +29,35 @@ const client = new Client({
   database: process.env.DB_NAME,
 });
 
-client.connect((err) => {
+client.connect(async (err) => {
   if (err) {
     console.log("DB Connection Error: ", err);
     process.exit(1);
   } else {
     console.log("PostgreSQL Connected");
+
+    // Create tables if they do not exist
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS users (
+          id VARCHAR(10) PRIMARY KEY,
+          name VARCHAR(100) NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL
+        );
+      `);
+
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS context (
+          id SERIAL PRIMARY KEY,
+          data TEXT NOT NULL
+        );
+      `);
+
+      console.log("Tables checked/created successfully.");
+    } catch (createTableError) {
+      console.error("Error creating tables: ", createTableError);
+    }
   }
 });
 
