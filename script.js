@@ -6,7 +6,8 @@ import dotenv from "dotenv";
 import { nanoid } from "nanoid";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Client } from "pg";
+import pg from "pg";
+const { Client } = pg;
 
 dotenv.config();
 
