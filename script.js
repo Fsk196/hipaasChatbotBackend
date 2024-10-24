@@ -17,7 +17,7 @@ app.use(cors());
 const databaseUrl = process.env.DB_URL;
 
 const accessEnv = process.env;
-const PORT = accessEnv.PORT || 3000;
+const PORT = accessEnv.PORT
 const JWT_SECRET = accessEnv.SECRECT_TOKEN;
 
 const db = mysql.createConnection({
@@ -144,5 +144,5 @@ app.post("/login", async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on http://192.168.1.11:${PORT}`);
+  console.log(`Server is running on ${PORT}`);
 });
