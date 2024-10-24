@@ -14,25 +14,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
+const databaseUrl = process.env.DB_URL;
+
 const accessEnv = process.env;
 const PORT = accessEnv.PORT || 3000;
 const JWT_SECRET = accessEnv.SECRECT_TOKEN;
-
-const contextDb = mysql.createConnection({
-  host: accessEnv.DB_HOST,
-  user: accessEnv.DB_USER,
-  password: accessEnv.DB_PASS,
-  database: accessEnv.DB_NAME,
-});
-
-contextDb.connect((err) => {
-  if (err) {
-    console.log("DB Connection Error: ", err);
-    process.exit(1);
-  } else {
-    console.log("MySQL Context Connected");
-  }
-});
 
 const db = mysql.createConnection({
   host: accessEnv.DB_HOST,
