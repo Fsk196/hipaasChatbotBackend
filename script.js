@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import { nanoid } from "nanoid";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { Client } from "pg";
 
 dotenv.config();
 
@@ -17,17 +18,17 @@ app.use(cors());
 const databaseUrl = process.env.DB_URL;
 
 const accessEnv = process.env;
-const PORT = accessEnv.PORT
+const PORT = accessEnv.PORT;
 const JWT_SECRET = accessEnv.SECRECT_TOKEN;
 
-const db = mysql.createConnection({
-  host: accessEnv.DB_HOST,
-  user: accessEnv.DB_USER,
-  password: accessEnv.DB_PASS,
-  database: accessEnv.DB_NAME,
+const client = new Client({
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT || 5432, // Default PostgreSQL port
+  user: process.env.DB_USER,
+  password: process.env.DB_PASS,
+  database: process.env.DB_NAME,
 });
-
-db.connect((err) => {
+client.connect((err) => {
   if (err) {
     console.log("DB Connection Error: ", err);
     process.exit(1);
@@ -48,22 +49,16 @@ app.post("/adduser", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const [rows] = await db
-      .promise()
-      .query(
-        "INSERT INTO user (id, name, email, password) VALUES (?, ?, ?, ?)",
-        [uId, name, email, hashedPassword]
-      );
+    const result = await client.query(
+      "INSERT INTO users (id, name, email, password) VALUES ($1, $2, $3, $4) RETURNING *",
+      [uId, name, email, hashedPassword]
+    );
 
     const token = jwt.sign({ id: uId, email }, JWT_SECRET, { expiresIn: "2h" });
 
     res.status(200).json({
       message: "User added successfully",
-      user: {
-        id: uId,
-        name: name,
-        email: email,
-      },
+      user: result.rows[0],
       token,
     });
   } catch (error) {
@@ -75,15 +70,15 @@ app.post("/adduser", async (req, res) => {
 app.get("/context", async (req, res) => {
   // const {id} = req.body;
   try {
-    const result = await db
-      .promise()
-      .query("Select * from context where id =(select max(id) from context);");
+    const result = await client.query(
+      "SELECT * FROM context WHERE id = (SELECT max(id) FROM context);"
+    );
 
-    if (result[0].length === 0) {
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: "No context found" });
     }
 
-    res.status(200).json(result[0]);
+    res.status(200).json(result.rows[0]);
   } catch (error) {
     console.log("Context Error: ", error);
     res.status(500).json({ error: "Internal server error" });
@@ -100,20 +95,17 @@ app.post("/login", async (req, res) => {
   }
 
   try {
-    // Query the user by email from the database
-    const [rows] = await db
-      .promise()
-      .query("SELECT * FROM user WHERE email = ?", [email]);
+    const result = await client.query("SELECT * FROM users WHERE email = $1", [
+      email,
+    ]);
 
-    if (rows.length === 0) {
-      // User not found
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    const user = rows[0]; // Assuming the user exists
+    const user = result.rows[0];
     const storedHashedPassword = user.password;
 
-    // Compare the provided password with the stored hashed password
     const isMatch = await bcrypt.compare(password, storedHashedPassword);
 
     if (!isMatch) {
@@ -124,10 +116,6 @@ app.post("/login", async (req, res) => {
       expiresIn: "2h",
     });
 
-    if (res.status(200)) {
-      console.log("User logged in");
-    }
-    // If the password matches, you can respond with user details or a token
     res.status(200).json({
       message: "Login successful",
       user: {
