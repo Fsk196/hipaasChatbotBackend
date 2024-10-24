@@ -1,6 +1,7 @@
 {
   "type": "module",
   "scripts": {
+    "start": "node script.js",
     "dev": "nodemon script.js"
   },
   "dependencies": {
